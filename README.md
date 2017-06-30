@@ -14,3 +14,5 @@ Data- 2 time series R-GDP and unemployment rate are available under the data fol
 Model- Jupyter notebook of the model is available under the model folder
 Report- The original report for the academic assignment is available under EDA folder, the report for this project is embedded into the model notebook. The code for the original academic report is available under the EDA Folder 
 ```
+HTML format report with the embedded model
+
