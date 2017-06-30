@@ -1,0 +1,95 @@
+---
+title: "Mini Project-2"
+author: "Ajinkya Khamkar"
+date: "22 February 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE)
+```
+####Q.1  
+We decompose the time series to its following fundamental components  
+1. Seasonality  
+2. Trend  
+3. Oscillations  
+4. Remainder  
+  
+#Seasonality  
+```{r fig.width=8, echo=FALSE}
+library(ggplot2)
+df.unemp=read.csv("UNRATENSA.csv",sep = ',',header = TRUE)
+colnames(df.unemp) = c("date","Unemployment")
+df.newdata=ts(df.unemp$Unemployment,start=c(1948,1),freq=12)
+data.df.unemp = data.frame(year=time(df.newdata), Unemployment=(df.unemp$Unemployment))
+data.unemp.stl = stl(df.newdata, s.window=101, s.degree=1)
+year.cut = cut_number(time(df.newdata), n=4)
+data.df2.unemp = data.frame(year=time(df.newdata), data.unemp.stl$time.series, year.cut)
+ggplot(data.df2.unemp, aes(x=year, y=seasonal)) + geom_line() + facet_wrap(~year.cut, ncol=1, scales="free_x")+ggtitle("                                         Seasonality with years cut in 4")+xlab("Years") + ylab("Seasonal Component")
+
+```
+We observe seasonality in our data, as expected, which appears to be decreasing with time. It is also noticeable that there is large variation in seasonality for all months, except for the months of May and December.  
+```{r fig.width=8, echo=FALSE}
+monthplot(data.unemp.stl, choice="seasonal",main="Month Plot representing seasonal Oscillations",xlab="Months", ylab = "Seasonal Oscillations")
+```
+  
+#Trend  
+  
+Since, we have data for several decades, we do not observe a clear trend in the data. We observe that the graph is increasing up to the year 1970, after which it decreases till 1985. Thereafter, we see that the graph is increasing up to the year 2017. So, we can conclude that the plot is not monotonic.  
+  
+```{r fig.width=8,fig.height=3,echo=FALSE}
+library(broom)
+data.unemp.lo = loess(Unemployment~year, data=data.df.unemp)
+data.unemp.lo.df = augment(data.unemp.lo)
+ggplot(data.unemp.lo.df, aes(x=year, y=.fitted)) + geom_line()+geom_smooth(span=0.1)+ggtitle("                                  Trend Component of Unemployment Time Series")+ylab("Trend")+xlab("Years")
+```
+  
+#Oscillations  
+  
+We observe about six or seven cycles in our data, as seen by plotting the fitted values of the third-order loess.
+```{r oscillations,fig.width=10,fig.height=3,echo=FALSE}
+library(tidyr)
+Year = data.df.unemp$year
+data.unemp.lo2 = loess(residuals(data.unemp.lo)~Year, span=0.1)
+data.unemp.lo2.df = augment(data.unemp.lo2)
+#final 
+
+data.unemp.ts = data.frame(Year,Oscillatory=data.unemp.lo2.df$.fitted, Residuals=data.unemp.lo2.df$.resid)
+data.unemp.ts.long = data.unemp.ts %>% gather(type, Unemployment, Oscillatory:Residuals)
+ggplot(data.unemp.lo2.df, aes(x=Year, y=.fitted)) + geom_line() +geom_smooth(span=0.1)+ggtitle("                                     Oscillatory pattern and Remainder Plot")+ ylab("Oscillatory Component")
+```
+  
+##Q.2
+  
+#GDP as a predictor of Unemployment rate  
+  
+```{r GDP,echo=FALSE}
+library(dplyr)
+library(grid)
+#Reading GDP data from file
+df=read.csv("RGDP_Final.csv",sep = ',',header = TRUE)
+
+#Editing column names
+colnames(df)=c("year","GDP")
+
+#Converting year column to continuous
+df.gdp=ts(df$GDP,start=c(1947,2),freq=4)
+
+#Creating final GDP data set
+gdp = data.frame(year=time(df.gdp), GDP=df$GDP)
+
+library(broom)
+#Fitting first loess and removing the trend component
+gdp.lo = loess(GDP~year, data=gdp)
+gdp.lo.df = augment(gdp.lo)
+
+#Re-fit the loess
+df2.lo2 = loess(residuals(gdp.lo)~gdp$year, span=0.1)
+gdp.lo2.df = augment(df2.lo2)
+
+#Oscillations
+p1=ggplot(gdp.lo2.df, aes(x=gdp.year, y=.fitted)) + geom_smooth(span=0.1)+ggtitle("                 Oscillatory Component for Real Gross Domestic Product") + ylab("Oscillatory Component")+xlab("Years")
+p2=ggplot(data.unemp.lo2.df,aes(x=Year,y=.fitted))+geom_smooth(span=0.1)+ggtitle("                           Oscillatory Component for Unemployment")+ylab("Oscillatory Component")+xlab("Years")
+grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
+```
+Economically thinking, there should be a correlation between the change in RGDP (Real Gross Domestic Product) and the unemployment rate. We obtained quarterly seasonally-adjusted data for RGDP (Percent change from preceding period) from April 1947 to January 2017. Having seasonally-adjusted data simplifies our analysis, since we are no longer required to account for the seasonal component.  
