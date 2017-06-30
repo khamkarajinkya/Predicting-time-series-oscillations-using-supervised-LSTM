@@ -16,3 +16,4 @@ Report- The original report for the academic assignment is available under EDA f
 ```
 HTML format report with the embedded model
 
+https://rawgit.com/khamkarajinkya/Predicting-time-series-oscillations-using-supervised-LSTM/master/report/LSTM_Implementation.html
